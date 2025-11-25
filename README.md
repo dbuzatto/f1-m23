@@ -1,6 +1,6 @@
 # 🏁 Simulador McLaren M23 (1976) – Computação Gráfica
 
-Este projeto é uma simulação gráfica em Python utilizando **PyOpenGL** e **Pygame**, recriando de forma estilizada o lendário carro de Fórmula 1 **McLaren M23 do ano de 1976**.
+Simulação interativa desenvolvida em **Python + PyOpenGL + Pygame** que recria, em tempo real, uma volta com a lendária **McLaren M23 (1976)**. O projeto foi construído como trabalho da disciplina de Computação Gráfica e reúne modelagem procedural, texturas geradas por código e um loop de jogo completo (menu → corrida → game over).
 
 **Projeto:** Simulador da McLaren M23 (1976)  
 **Autor:** Diogo Buzatto  
@@ -9,22 +9,29 @@ Este projeto é uma simulação gráfica em Python utilizando **PyOpenGL** e **P
 
 ---
 
-## 🚗 Sobre o Projeto
+## 🚗 Visão Geral
 
-O simulador demonstra conceitos essenciais de Computação Gráfica, incluindo:
+- Carro modelado via primitivas do OpenGL (quads, linhas e quadrics) com detalhes de cockpit, asas, rodas texturizadas e piloto animado.
+- Pista infinita com curvas suaves, zebras dinâmicas, arquibancadas com torcida animada e partículas de poeira quando o carro sai da pista.
+- Ambiente com **fog**, iluminação básica, sol, nuvens animadas e texturas procedurais de grama, madeira e roda geradas em tempo de execução.
+- HUD com velocidade aproximada em km/h, distância percorrida e alertas quando o carro pisa na grama.
+- Máquina de estados simples: tela inicial com câmera em órbita, corrida e tela de game over ao bater nas arquibancadas.
 
-- Modelagem geométrica procedural do carro McLaren M23 (1976)
-- Transformações e visualização em 3D
-- Texturas geradas via código
-- Renderização utilizando primitivas OpenGL (`GL_QUADS`, `GL_LINES`, etc.)
-- Sistema simples de movimentação e partículas
-- Câmera controlável em tempo real
+---
+
+## 🧱 Arquitetura do Projeto
+
+| Arquivo | Descrição |
+| --- | --- |
+| `main.py` | Declara a classe `McLarenM23`, responsável por desenhar o carro, piloto e animações de rodas/direção. |
+| `scene.py` | Loop principal do jogo: inicialização do OpenGL, geração de texturas procedurais, ambiente, lógica de estados, câmera e controles. Execute este arquivo para rodar o simulador. |
+| `requirements.txt` | Lista as dependências necessárias (Pygame, PyOpenGL e NumPy). |
 
 ---
 
 ## 🛠️ Requisitos
 
-Conforme especificado em `requirements.txt`:
+Instale as dependências listadas em `requirements.txt`:
 
 - `pygame`
 - `PyOpenGL`
@@ -34,70 +41,47 @@ Conforme especificado em `requirements.txt`:
 
 ## 💾 Instalação e Execução
 
-### 1. Criar ambiente virtual (opcional, recomendado)
-
-macOS/Linux:
-
-~~~bash
-python3 -m venv venv
-source venv/bin/activate
-~~~
-
-Windows:
-
-~~~bash
-python -m venv venv
-venv\Scripts\activate
-~~~
-
-### 2. Instalar dependências
-
-~~~bash
-pip install -r requirements.txt
-~~~
-
-Ou manualmente:
-
-~~~bash
-pip install pygame PyOpenGL PyOpenGL-accelerate numpy
-~~~
-
-### 3. Executar o projeto
-
-~~~bash
-python3 scene.py
-~~~
+1. *(Opcional)* Crie e ative um ambiente virtual
+   - macOS/Linux
+     ```bash
+     python3 -m venv venv
+     source venv/bin/activate
+     ```
+   - Windows
+     ```bash
+     python -m venv venv
+     venv\Scripts\activate
+     ```
+2. Instale as dependências
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Execute o simulador
+   ```bash
+   python scene.py
+   ```
 
 ---
 
 ## 🎮 Controles
 
-### Carro
+| Ação | Tecla |
+| --- | --- |
+| Iniciar / reiniciar corrida | `ENTER` |
+| Acelerar / Frear (ré) | `W` / `S` |
+| Virar esquerda / direita | `A` / `D` |
+| Ajustar câmera (órbita / altura) | Setas `← → ↑ ↓` |
 
-- **W** – Acelerar  
-- **S** – Frear / Ré  
-- **A / D** – Virar para esquerda / direita  
-
-### Câmera
-
-- **↑ / ↓ / ← / →** – Ajuste de ângulo e zoom da câmera  
-
-### Geral
-
-- **ENTER** – Iniciar corrida / Reiniciar simulação  
+Quando o carro sai da pista, a velocidade reduz, a câmera treme e partículas de sujeira aparecem. Bater nas arquibancadas encerra a corrida (tela *Game Over*).
 
 ---
 
 ## 🧩 Detalhes Técnicos
 
-- Cena construída puramente com **PyOpenGL**
-- Uso de **GLUT** para renderização de texto bitmap
-- Texturas procedurais (grama, madeira, rodas) geradas em tempo de execução
-- Estrutura principal e lógica da cena no arquivo `scene.py`
-- Arquivo `main.py` como ponto de entrada/organização do projeto (se utilizado)
+- Renderização 3D inteira em **PyOpenGL**, com **GLUT** para a escrita do HUD.
+- Texturas procedurais geradas na inicialização (grama, madeira das arquibancadas, bandeira de chegada e calota das rodas).
+- Sistema de partículas simples para poeira, controlado pelo estado do carro.
+- Fog exponencial e iluminação ambiente/difusa para dar profundidade à cena.
+- Câmera orbitando o carro, com distância e altura ajustáveis em tempo real.
 
 ---
-
-## 📌 Observações
-
-Este projeto foi desenvolvido como trabalho acadêmico para a disciplina de **Computação Gráfica**, utilizando o carro **McLaren M23 (1976)** como tema central para aplicação prática de conceitos de modelagem 3D, texturização procedural e pipeline gráfico.

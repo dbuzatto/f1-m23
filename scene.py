@@ -16,7 +16,7 @@ LARGURA_TELA = 1024
 ALTURA_TELA = 768
 LARGURA_PISTA = 14.0
 COMPRIMENTO_SEGMENTO = 4.0
-NUM_SEGMENTOS = 60
+NUM_SEGMENTOS = 120
 VELOCIDADE_MAX = 97.0 
 
 # Paleta de Cores
@@ -33,7 +33,7 @@ COR_TERRA = (0.35, 0.25, 0.15)
 # Estados do Jogo
 ESTADO_MENU = 0
 ESTADO_CORRIDA = 1
-ESTADO_FIM = 2
+ESTADO_GAMEOVER = 3
 
 # Variáveis Globais de Textura e Ambiente
 ID_TEXTURA_GRAMA = None
@@ -363,53 +363,54 @@ def desenhar_pista(offset_z, dist_total, tempo, dist_fim_corrida):
     
     for i in range(NUM_SEGMENTOS + 6):
         idx_atual = idx_inicio + i
-        z_inicio = -(i * COMPRIMENTO_SEGMENTO) + COMPRIMENTO_SEGMENTO 
+
+        curva_offset = math.sin((offset_z + i * COMPRIMENTO_SEGMENTO) / 80.0) * 6.0
+        glPushMatrix()
+        glTranslatef(curva_offset, 0, 0)
+
+        z_inicio = -(i * COMPRIMENTO_SEGMENTO) + COMPRIMENTO_SEGMENTO
         z_fim = z_inicio - COMPRIMENTO_SEGMENTO
         
-        dist_fim_segmento = (idx_atual * COMPRIMENTO_SEGMENTO) + COMPRIMENTO_SEGMENTO
-        eh_linha_chegada = dist_fim_segmento >= dist_fim_corrida and dist_fim_segmento < dist_fim_corrida + COMPRIMENTO_SEGMENTO
+        # eh_linha_chegada = (idx_atual % NUM_SEGMENTOS) == 0
 
-        # Linha de chegada
-        if eh_linha_chegada:
-            glEnable(GL_TEXTURE_2D)
-            glBindTexture(GL_TEXTURE_2D, ID_TEXTURA_CHEGADA)
-            glColor3f(1, 1, 1)
-            glBegin(GL_QUADS)
-            glTexCoord2f(0, 0); glVertex3f(-LARGURA_PISTA/2, 0.02, z_inicio) 
-            glTexCoord2f(1, 0); glVertex3f(LARGURA_PISTA/2, 0.02, z_inicio)
-            glTexCoord2f(1, 1); glVertex3f(LARGURA_PISTA/2, 0.02, z_fim)
-            glTexCoord2f(0, 1); glVertex3f(-LARGURA_PISTA/2, 0.02, z_fim)
-            glEnd()
-            glDisable(GL_TEXTURE_2D)
-        
-        # Asfalto
+        # if eh_linha_chegada:
+        #     glEnable(GL_TEXTURE_2D)
+        #     glBindTexture(GL_TEXTURE_2D, ID_TEXTURA_CHEGADA)
+        #     glColor3f(1, 1, 1)
+        #     glBegin(GL_QUADS)
+        #     glTexCoord2f(0, 0); glVertex3f(-LARGURA_PISTA/2, 0.02, z_inicio)
+        #     glTexCoord2f(1, 0); glVertex3f(LARGURA_PISTA/2, 0.02, z_inicio)
+        #     glTexCoord2f(1, 1); glVertex3f(LARGURA_PISTA/2, 0.02, z_fim)
+        #     glTexCoord2f(0, 1); glVertex3f(-LARGURA_PISTA/2, 0.02, z_fim)
+        #     glEnd()
+        #     glDisable(GL_TEXTURE_2D)
+
         glColor3f(*COR_ASFALTO)
         glBegin(GL_QUADS)
         glVertex3f(-LARGURA_PISTA/2, 0, z_inicio); glVertex3f(LARGURA_PISTA/2, 0, z_inicio)
         glVertex3f(LARGURA_PISTA/2, 0, z_fim); glVertex3f(-LARGURA_PISTA/2, 0, z_fim)
         glEnd()
 
-        # Zebras (Vermelho e Branco)
         if idx_atual % 2 == 0: glColor3f(*COR_ZEBRA_VERMELHA)
         else: glColor3f(*COR_ZEBRA_BRANCA)
         
         largura_zebra = 1.0
         glBegin(GL_QUADS)
-        # Esquerda
         glVertex3f(-LARGURA_PISTA/2 - largura_zebra, 0.01, z_inicio); glVertex3f(-LARGURA_PISTA/2, 0.01, z_inicio)
         glVertex3f(-LARGURA_PISTA/2, 0.01, z_fim); glVertex3f(-LARGURA_PISTA/2 - largura_zebra, 0.01, z_fim)
-        # Direita
         glVertex3f(LARGURA_PISTA/2, 0.01, z_inicio); glVertex3f(LARGURA_PISTA/2 + largura_zebra, 0.01, z_inicio)
         glVertex3f(LARGURA_PISTA/2 + largura_zebra, 0.01, z_fim); glVertex3f(LARGURA_PISTA/2, 0.01, z_fim)
         glEnd()
         
-        # Arquibancadas
-        distancia_arq = 6.0 
+        distancia_arq = 6.0
         desenhar_arquibancada(-LARGURA_PISTA/2 - distancia_arq, z_inicio, z_fim, idx_atual, tempo, False)
         desenhar_arquibancada(LARGURA_PISTA/2 + distancia_arq, z_inicio, z_fim, idx_atual, tempo, True)
 
+        glPopMatrix()
+
     glPopMatrix()
     glEnable(GL_LIGHTING)
+
 
 
 # RENDERIZAÇÃO DE TEXTO (GLUT)
@@ -468,149 +469,148 @@ def main():
     pista_z = 0.0
     velocidade = 0.0
     tempo_animacao = 0.0 
-    distancia_total = 2000.0
+    distancia_total = 0.0   # Distância total percorrida
+    # voltas = 0             # Contador de voltas
+    # distancia_volta = COMPRIMENTO_SEGMENTO * NUM_SEGMENTOS
+
     
     ultimo_tempo = time.time()
     rodando = True
 
     while rodando:
-        # Cálculo do Delta Time (dt) para suavidade independente do FPS
         tempo_atual = time.time()
         dt = tempo_atual - ultimo_tempo
         ultimo_tempo = tempo_atual
-        
-        if dt > 0.1: dt = 0.1 # Evita saltos se travar
+        if dt > 0.1: dt = 0.1
         
         tempo_animacao += dt 
 
-        # Eventos Pygame
         for evento in pygame.event.get():
-            if evento.type == pygame.QUIT: rodando = False
+            if evento.type == pygame.QUIT:
+                rodando = False
+
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_RETURN:
+
                     if estado_jogo == ESTADO_MENU:
                         estado_jogo = ESTADO_CORRIDA
                         velocidade = 30.0
-                        cam_dist = 11.0; cam_alt = 3.5; cam_angulo = 0.0
+                        cam_dist = 11.0
+                        cam_alt = 3.5
+                        cam_angulo = 0.0
                         PARTICULAS.clear()
-                    elif estado_jogo == ESTADO_FIM:
-                        # Reiniciar
+
+                    elif estado_jogo == ESTADO_GAMEOVER:
+                        carro_x = 0.0
+                        pista_z = 0.0
+                        velocidade = 0.0
+                        voltas = 0
+                        distancia_total = 0.0
                         estado_jogo = ESTADO_MENU
-                        pista_z = 0; carro_x = 0; velocidade = 0
-                
-                if evento.key == pygame.K_r and estado_jogo == ESTADO_FIM:
-                    estado_jogo = ESTADO_MENU
-                    pista_z = 0; carro_x = 0; velocidade = 0
-        
+
         teclas = pygame.key.get_pressed()
         input_direcao = 0
         tremor_cam_y = 0.0 
         
         if estado_jogo == ESTADO_CORRIDA:
-            # Direção
             if teclas[pygame.K_a]: 
                 carro_x -= 15.0 * dt
                 input_direcao = 20 
             elif teclas[pygame.K_d]: 
                 carro_x += 15.0 * dt
                 input_direcao = -20 
-            
-            # Checa se saiu da pista (física simples de grama)
-            limite_pista = (LARGURA_PISTA / 2.0) 
-            na_grama = abs(carro_x) > limite_pista
 
-            # Aceleração / Freio
+            limite_pista = (LARGURA_PISTA / 2.0)
+
+            pista_z_anterior = pista_z
+            pista_z = pista_z + velocidade * dt
+            distancia_total += velocidade * dt
+
+            curva_offset = math.sin(pista_z / 80.0) * 6.0
+            limite_arq = (LARGURA_PISTA / 2.0) + 6.0
+            bateu_arquibancada = abs(carro_x - curva_offset) > limite_arq
+
+            if bateu_arquibancada:
+                estado_jogo = ESTADO_GAMEOVER
+                velocidade = 0
+
+            na_grama = abs(carro_x - curva_offset) > limite_pista
+
             if teclas[pygame.K_w]: 
                 if na_grama: velocidade += 5.0 * dt 
                 else: velocidade += 25.0 * dt 
             elif teclas[pygame.K_s]: 
                 velocidade -= 40.0 * dt 
             else: 
-                velocidade -= 5.0 * dt # Desaceleração natural
+                velocidade -= 5.0 * dt
             
-            # Penalidade na grama
             if na_grama:
                 velocidade -= 35.0 * dt
                 if velocidade > 1.0:
                     tremor_cam_y = random.uniform(-0.05, 0.05)
                     gerar_particulas(carro_x, carro_z_pos, intensidade=2)
 
-            # Limites de velocidade
             if velocidade > VELOCIDADE_MAX: velocidade = VELOCIDADE_MAX
             if velocidade < 0: velocidade = 0
-            
-            pista_z += velocidade * dt
+
+            # if pista_z < pista_z_anterior:
+            #     voltas += 1
+
             angulo_roda -= velocidade * 15.0 * dt 
-            
-            # Checagem de fim de corrida
-            if pista_z >= distancia_total: 
-                estado_jogo = ESTADO_FIM
-                velocidade = 0
         
-        # Controle de Câmera (Setas)
         if teclas[pygame.K_LEFT]:  cam_angulo -= 2.0 * dt
         if teclas[pygame.K_RIGHT]: cam_angulo += 2.0 * dt
         if teclas[pygame.K_UP]:    cam_alt += 5.0 * dt
         if teclas[pygame.K_DOWN]:  cam_alt -= 5.0 * dt
         
-        # Giro automático da câmera no menu
         if estado_jogo == ESTADO_MENU and not (teclas[pygame.K_LEFT] or teclas[pygame.K_RIGHT]): 
             cam_angulo += 0.5 * dt
         
-        # Limites da câmera
         if cam_alt < 0.5: cam_alt = 0.5
         if cam_dist < 3.0: cam_dist = 3.0
 
-        # --- RENDERIZAÇÃO ---
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         
-        # Posicionamento da Câmera
         alt_final = cam_alt + tremor_cam_y
         cam_x_mundo = carro_x + math.sin(cam_angulo) * cam_dist
         cam_z_mundo = carro_z_pos + math.cos(cam_angulo) * cam_dist
-        gluLookAt(cam_x_mundo, alt_final, cam_z_mundo, carro_x, 1.0, carro_z_pos, 0, 1, 0)               
+        gluLookAt(cam_x_mundo, alt_final, cam_z_mundo, carro_x, 1.0, carro_z_pos, 0, 1, 0)
 
         configurar_luz_carro()
         desenhar_sol()
         desenhar_nuvens(tempo_animacao)
         desenhar_chao(pista_z)
-        desenhar_pista(pista_z, pista_z, tempo_animacao, distancia_total) 
-
+        desenhar_pista(pista_z, pista_z, tempo_animacao, distancia_total)
         desenhar_e_atualizar_particulas(dt)
 
-        # Atualiza e desenha o carro
         mclaren.posicao = [carro_x, 0.15, carro_z_pos]
         mclaren.rotacao_roda = angulo_roda
         mclaren.angulo_direcao = input_direcao
         mclaren.rotacao_y = input_direcao + 180 
         mclaren.desenhar()
         
-        # --- HUD / TEXTOS ---
         if estado_jogo == ESTADO_MENU:
-            # Título
             desenhar_texto(LARGURA_TELA//2 - 100, ALTURA_TELA//2 + 50, "SIMULADOR MCLAREN M23")
-            # Iniciar
             desenhar_texto(LARGURA_TELA//2 - 110, ALTURA_TELA//2 - 20, "PRESSIONE ENTER PARA INICIAR")
-            # Direção
             desenhar_texto(LARGURA_TELA//2 - 90, ALTURA_TELA//2 - 60, "W, A, S, D PARA DIRIGIR")
-            # NOVO: Controle da Câmera (Setas)
             desenhar_texto(LARGURA_TELA//2 - 120, ALTURA_TELA//2 - 100, "SETAS PARA MOVER A CÂMERA")
         
         elif estado_jogo == ESTADO_CORRIDA:
-            vel_display = int(velocidade * 3) # Escala fictícia para parecer mais rápido
+            vel_display = int(velocidade * 3)
             desenhar_texto(20, ALTURA_TELA - 50, f"VELOCIDADE: {vel_display} KM/H")
-            desenhar_texto(20, ALTURA_TELA - 90, f"DISTANCIA: {int(pista_z)}m / {int(distancia_total)}m")
-            
+            desenhar_texto(20, ALTURA_TELA - 90, f"DISTANCIA TOTAL: {int(distancia_total)} m")
+            # desenhar_texto(20, ALTURA_TELA - 130, f"VOLTAS: {voltas}")
             if na_grama and velocidade > 5:
                  desenhar_texto(LARGURA_TELA//2 - 60, ALTURA_TELA - 150, "!!! FORA DA PISTA !!!")
 
-        elif estado_jogo == ESTADO_FIM:
-            desenhar_texto(LARGURA_TELA//2 - 90, ALTURA_TELA//2 + 50, "CORRIDA FINALIZADA!")
-            desenhar_texto(LARGURA_TELA//2 - 110, ALTURA_TELA//2 - 20, "PRESSIONE ENTER PARA REINICIAR")
+        elif estado_jogo == ESTADO_GAMEOVER:
+            desenhar_texto(LARGURA_TELA//2 - 80, ALTURA_TELA//2 + 30, "CARRO DESTRUÍDO")
+            desenhar_texto(LARGURA_TELA//2 - 130, ALTURA_TELA//2 - 20, "PRESSIONE ENTER PARA REINICIAR")
+
 
         pygame.display.flip()
-    pygame.quit()
+
 
 if __name__ == "__main__":
     main()
