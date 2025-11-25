@@ -1,0 +1,199 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------------------------
+% PACKAGES
+% -------------------------------------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+
+\onehalfspacing
+\setlength{\parindent}{1.25cm}
+
+% -------------------------------------
+% TITLE
+% -------------------------------------
+\title{
+    \vspace{3cm}
+    \textbf{Simulação 3D da McLaren M23 (1976) usando PyOpenGL} \\
+    \large Relatório do Trabalho Prático de Computação Gráfica
+    \vspace{1cm}
+}
+
+\author{
+    \textbf{Aluno:} Diogo Buzatto \\
+    \textbf{RA:} 111809 \\
+    \textbf{Disciplina:} Computação Gráfica \\
+    \textbf{Professor:} Maurício Acconcia Dias
+}
+
+\date{2025}
+
+% -------------------------------------
+% DOCUMENT
+% -------------------------------------
+\begin{document}
+\maketitle
+\newpage
+
+% -------------------------------------
+\section{Introdução}
+
+Este relatório apresenta o desenvolvimento do trabalho prático da disciplina de \textbf{Computação Gráfica}, cujo objetivo consiste em construir uma cena 3D interativa com um carro de Fórmula 1 percorrendo uma pista infinita. 
+
+O projeto recria a \textbf{McLaren M23 (temporada de 1976)}, modelada integralmente com primitivas OpenGL e animada em tempo real. A simulação foi implementada em Python utilizando \textbf{PyOpenGL} e \textbf{Pygame}, contemplando um loop completo de estados (menu, corrida e game over), geração procedural de texturas e um sistema de câmera controlável.
+
+\newpage
+
+% -------------------------------------
+\section{Objetivo do Projeto}
+
+O trabalho visa demonstrar o domínio da pipeline gráfica e de técnicas de construção de mundos virtuais. Entre os tópicos contemplados destacam-se:
+
+\begin{itemize}
+    \item Modelagem geométrica baseada em primitivas 3D;
+    \item Transformações (translação, rotação e escala) para animações e organização de cena;
+    \item Sistema de câmera em terceira pessoa com projeção perspectiva;
+    \item Renderização com PyOpenGL e uso de iluminação básica;
+    \item Texturas procedurais geradas por código (grama, madeira, rodas);
+    \item Animação com narrativa simples (menu $\rightarrow$ corrida $\rightarrow$ colisão/game over);
+    \item Representação de movimento por rodas e partículas de poeira;
+    \item Elementos de interface (HUD, instruções na tela e alertas contextuais).
+\end{itemize}
+
+\newpage
+
+% -------------------------------------
+\section{Ferramentas Utilizadas}
+
+\begin{itemize}
+    \item Python 3.x;
+    \item PyOpenGL (GL, GLU e GLUT);
+    \item Pygame;
+    \item NumPy (apoio para geração de texturas e cálculos).
+\end{itemize}
+
+Todo o desenvolvimento respeitou as diretrizes da especificação oficial do trabalho e foi versionado em um repositório Git.
+
+% -------------------------------------
+\section{Modelagem 3D}
+
+A modelagem do carro e dos elementos da cena foi construída manualmente, empregando unicamente primitivas do OpenGL, como \texttt{GL\_QUADS}, \texttt{GL\_LINES} e objetos quadrics (\texttt{gluCylinder}, \texttt{gluSphere}, \texttt{gluDisk}). Nenhuma malha externa foi importada.
+
+\subsection{Carro McLaren M23 (1976)}
+
+A classe \texttt{McLarenM23} encapsula todas as partes do veículo:
+
+\begin{itemize}
+    \item Nariz estreito e asa dianteira plana;
+    \item Cockpit central com Santo Antônio, para-brisa translúcido e piloto animado (cabeça segue o volante);
+    \item Asa traseira elevada com placas laterais;
+    \item Rodas dianteiras e traseiras com tamanhos distintos, calotas texturizadas e pneus espessos;
+    \item Pintura vermelha, branca e cromada clássica da McLaren, definida por paletas de cores em código.
+\end{itemize}
+
+\subsection{Detalhamento e Texturas}
+
+Os patrocinadores e faixas laterais são simulados por geometrias planas coloridas. As calotas das rodas, a madeira das arquibancadas e a grama usam texturas procedurais geradas em tempo de execução, reforçando o requisito de não depender de imagens externas.
+
+\newpage
+
+% -------------------------------------
+\section{Renderização da Cena}
+
+A cena reúne diversos elementos para tornar o ambiente crível:
+
+\begin{itemize}
+    \item Pista infinita com curvas suaves e zebras alternadas;
+    \item Arquibancadas nas laterais, com torcida procedural animada;
+    \item Grama texturizada e horizonte composto por sol, nuvens e névoa;
+    \item Sistema de partículas de poeira acionado quando o carro sai da pista;
+    \item HUD em 2D renderizado via GLUT (velocidade, distância total e alertas).
+\end{itemize}
+
+\subsection{Pista Infinita e Ambiente}
+
+A sensação de infinitude é obtida pela repetição de segmentos (\texttt{NUM\_SEGMENTOS = 120}) posicionados à frente da câmera. O traçado recebe um \textit{offset} senoidal, simulando curvas largas. Cada bloco também desenha arquibancadas em ambos os lados, texturizadas com madeira e preenchidas por “bonecos” que saltam em ritmos pseudo-aleatórios.
+
+O ambiente utiliza fog exponencial, iluminação difusa/especular simples e objetos extra, como sol e nuvens volumétricas formadas por múltiplas esferas.
+
+\subsection{Interação e Movimento}
+
+O loop principal controla uma máquina de estados:
+
+\begin{itemize}
+    \item \textbf{Menu}: câmera orbita o carro, exibindo instruções;
+    \item \textbf{Corrida}: entrada no estado ativa o movimento com velocidade inicial e libera controles de direção, aceleração e câmera;
+    \item \textbf{Game Over}: ao colidir com as arquibancadas, o carro é destruído e a simulação pausa até o jogador reiniciar.
+\end{itemize}
+
+As rodas giram proporcionalmente à velocidade, e partículas aparecem quando o veículo pisa na grama. O HUD mostra a velocidade (escala aproximada em km/h) e a distância total percorrida.
+
+\newpage
+
+% -------------------------------------
+\section{Controles}
+
+\begin{itemize}
+    \item \textbf{ENTER} – Inicia ou reinicia a corrida;
+    \item \textbf{W / S} – Acelerar e frear (ré);
+    \item \textbf{A / D} – Virar o carro;
+    \item \textbf{Setas} – Orbitam e ajustam a altura da câmera em tempo real.
+\end{itemize}
+
+Quando o carro sai da pista, a velocidade é reduzida, a câmera treme e partículas são emitidas. Bater nas arquibancadas encerra a corrida e ativa o estado de game over.
+
+% -------------------------------------
+\section{Elementos Extras da Animação}
+
+Para cumprir os critérios de avaliação e enriquecer a experiência, o projeto inclui:
+
+\begin{itemize}
+    \item Textos em tela (menu, instruções, HUD e mensagens de alerta);
+    \item Câmera em terceira pessoa com órbita automática no menu;
+    \item Partículas de poeira e tremor da câmera ao tocar a grama;
+    \item Sol, nuvens animadas, fog e iluminação básica;
+    \item Plateia procedural saltando em arquibancadas texturizadas.
+\end{itemize}
+
+\newpage
+
+% -------------------------------------
+% -------------------------------------
+\section{Resultados Obtidos}
+
+Os objetivos do trabalho foram alcançados:
+
+\begin{itemize}
+    \item Cena completa construída em PyOpenGL, sem uso de modelos externos;
+    \item Carro fiel aos traços da McLaren M23/1976, com piloto e detalhes cromáticos;
+    \item Pista infinita funcional, com curvas, zebras e arquibancadas animadas;
+    \item Loop de jogo com três estados e HUD contextual;
+    \item Rodas e direção animadas de acordo com a entrada do usuário;
+    \item Sistema estável, executando em tempo real sem travamentos.
+\end{itemize}
+
+Apesar do êxito geral, a etapa de modelagem do carro demandou mais tempo: decompor o design real da McLaren em primitivas simples, ajustar proporções e adicionar detalhes como asas, cockpit e piloto foi a parte mais trabalhosa. Em contraste, compor o ambiente (pista, arquibancadas, céu, partículas e HUD) foi significativamente mais simples e rápido, graças à natureza repetitiva dos segmentos e à geração procedural das texturas.
+
+
+% -------------------------------------
+\section{Conclusão}
+
+O desenvolvimento proporcionou um entendimento aprofundado da pipeline gráfica e consolidou conhecimentos de modelagem manual, texturização procedural, iluminação, câmeras e animação em tempo real. A construção da cena apenas com primitivas OpenGL reforçou a importância de planejar cada parte da geometria e de organizar transformações hierárquicas.
+
+O projeto final atende aos requisitos definidos em aula e serve como base para futuras extensões, como cronômetro de voltas, inteligência artificial para outros carros ou exportação de assets para engines externas.
+
+% -------------------------------------
+\section{Referências}
+
+\begin{itemize}
+    \item Documentação oficial do PyOpenGL;
+    \item Documentação do Pygame;
+    \item Materiais e aulas da disciplina de Computação Gráfica;
+    \item Referências visuais da McLaren M23 (1976) e registros históricos da Fórmula 1.
+\end{itemize}
+
+\end{document}
