@@ -9,6 +9,7 @@
 \usepackage{titlesec}
 \usepackage{indentfirst}
 \usepackage{hyperref}
+\usepackage[portuguese]{babel} % Garante hifenização e nomes em PT-BR
 
 \onehalfspacing
 \setlength{\parindent}{1.25cm}
@@ -116,7 +117,7 @@ A cena reúne diversos elementos para tornar o ambiente crível:
 
 \subsection{Pista Infinita e Ambiente}
 
-A sensação de infinitude é obtida pela repetição de segmentos (\texttt{NUM\_SEGMENTOS = 120}) posicionados à frente da câmera. O traçado recebe um \textit{offset} senoidal, simulando curvas largas. Cada bloco também desenha arquibancadas em ambos os lados, texturizadas com madeira e preenchidas por “bonecos” que saltam em ritmos pseudo-aleatórios.
+A sensação de infinitude é obtida pela repetição de segmentos (\texttt{NUM\_SEGMENTOS = 80}) posicionados à frente da câmera. O traçado recebe um \textit{offset} senoidal, simulando curvas largas. Cada bloco também desenha arquibancadas em ambos os lados, texturizadas com madeira e preenchidas por “bonecos” que saltam em ritmos pseudo-aleatórios.
 
 O ambiente utiliza fog exponencial, iluminação difusa/especular simples e objetos extra, como sol e nuvens volumétricas formadas por múltiplas esferas.
 
@@ -169,15 +170,14 @@ Os objetivos do trabalho foram alcançados:
 
 \begin{itemize}
     \item Cena completa construída em PyOpenGL, sem uso de modelos externos;
-    \item Carro fiel aos traços da McLaren M23/1976, com piloto e detalhes cromáticos;
+    \item Carro fiel McLaren M23/1976, com piloto;
     \item Pista infinita funcional, com curvas, zebras e arquibancadas animadas;
     \item Loop de jogo com três estados e HUD contextual;
     \item Rodas e direção animadas de acordo com a entrada do usuário;
     \item Sistema estável, executando em tempo real sem travamentos.
 \end{itemize}
 
-Apesar do êxito geral, a etapa de modelagem do carro demandou mais tempo: decompor o design real da McLaren em primitivas simples, ajustar proporções e adicionar detalhes como asas, cockpit e piloto foi a parte mais trabalhosa. Em contraste, compor o ambiente (pista, arquibancadas, céu, partículas e HUD) foi significativamente mais simples e rápido, graças à natureza repetitiva dos segmentos e à geração procedural das texturas.
-
+Apesar do êxito geral, é importante mencionar que o modelo final do carro não ficou 100\% fiel ao modelo de exemplo utilizado como referência. Isso se deveu à decisão de priorizar o desenvolvimento do ambiente, do sistema de partículas e da implementação das mecânicas de interação e ações na cena, garantindo uma experiência de simulação mais fluida e reativa em detrimento de um detalhamento geométrico exaustivo do veículo.
 
 % -------------------------------------
 \section{Conclusão}
