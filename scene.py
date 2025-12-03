@@ -3,23 +3,21 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+from PIL import Image
 import random
 import math
 import time
 
 from main import McLarenM23
 
-
-# CONFIGURAÇÕES GERAIS
-
 LARGURA_TELA = 1024
 ALTURA_TELA = 768
 LARGURA_PISTA = 14.0
 COMPRIMENTO_SEGMENTO = 4.0
-NUM_SEGMENTOS = 120
+
+NUM_SEGMENTOS = 80 
 VELOCIDADE_MAX = 97.0 
 
-# Paleta de Cores
 COR_CEU = (0.5, 0.7, 1.0, 1.0)
 COR_ASFALTO = (0.15, 0.15, 0.15)
 COR_ZEBRA_VERMELHA = (0.8, 0.0, 0.0)
@@ -30,22 +28,21 @@ COR_NUVEM = (0.9, 0.9, 0.95, 0.7)
 COR_TEXTO = (1.0, 1.0, 0.0)
 COR_TERRA = (0.35, 0.25, 0.15) 
 
-# Estados do Jogo
 ESTADO_MENU = 0
 ESTADO_CORRIDA = 1
 ESTADO_GAMEOVER = 3
 
-# Variáveis Globais de Textura e Ambiente
 ID_TEXTURA_GRAMA = None
 ID_TEXTURA_MADEIRA = None
 ID_TEXTURA_CHEGADA = None 
 ID_TEXTURA_RODA = None  
+ID_TEXTURA_MARLBORO = None
 CORES_TORCIDA = []
 NUVENS = []
 PARTICULAS = [] 
 
 def criar_textura_grama():
-    largura, altura = 256, 256
+    largura, altura = 128, 128
     dados = []
     for y in range(altura):
         for x in range(largura):
@@ -56,7 +53,7 @@ def criar_textura_grama():
     return gerar_textura_opengl(largura, altura, bytes(dados))
 
 def criar_textura_madeira():
-    largura, altura = 128, 128
+    largura, altura = 64, 64
     dados = []
     for y in range(altura):
         base_r = 120 + random.randint(-10, 10)
@@ -83,7 +80,7 @@ def criar_textura_chegada():
     return gerar_textura_opengl(largura, altura, bytes(dados))
 
 def criar_textura_roda():
-    largura, altura = 256, 256
+    largura, altura = 128, 128
     dados = []
     centro_x, centro_y = largura / 2, altura / 2
     raio_max = largura / 2
@@ -98,7 +95,6 @@ def criar_textura_roda():
             r, g, b = 20, 20, 20 
             if dist_norm < 0.5:
                 r, g, b = 40, 40, 45 
-            # Efeito de borrão/movimento na borda
             if 0.70 < dist_norm < 0.90:
                 ruido = random.randint(0, 150)
                 angulo = math.atan2(dy, dx)
@@ -115,20 +111,71 @@ def gerar_textura_opengl(largura, altura, dados_bytes):
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR)
-    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, largura, altura, GL_RGB, GL_UNSIGNED_BYTE, dados_bytes)
+
+    expected_pixels = largura * altura
+    if len(dados_bytes) == expected_pixels * 4:
+        internal_format = GL_RGBA
+        data_format = GL_RGBA
+    else:
+        internal_format = GL_RGB
+        data_format = GL_RGB
+
+    gluBuild2DMipmaps(GL_TEXTURE_2D, internal_format, largura, altura, data_format, GL_UNSIGNED_BYTE, dados_bytes)
     return id_tex
 
+def carregar_textura_de_arquivo(caminho):
+    """Carrega uma imagem (PNG/JPG) via Pillow e cria uma textura OpenGL (preserva alpha se houver)."""
+    try:
+        img = Image.open(caminho)
+    except Exception:
+        return None
+
+    if img.mode not in ('RGB', 'RGBA'):
+        img = img.convert('RGBA')
+
+    img = img.transpose(Image.FLIP_TOP_BOTTOM)
+
+    largura, altura = img.width, img.height
+    modo = 'RGBA' if img.mode == 'RGBA' else 'RGB'
+    dados = img.tobytes()
+    return gerar_textura_opengl(largura, altura, dados)
+
+def compilar_display_lists():
+    global DL_BONECO, QUADRIC_GLOBAL
+    
+    if QUADRIC_GLOBAL is None:
+        QUADRIC_GLOBAL = gluNewQuadric()
+
+    DL_BONECO = glGenLists(1)
+    glNewList(DL_BONECO, GL_COMPILE)
+    
+    glPushMatrix()
+    glRotatef(-90, 1, 0, 0)
+    gluCylinder(QUADRIC_GLOBAL, 0.22, 0.18, 0.55, 6, 1)
+    glPopMatrix()
+    
+    glColor3f(*COR_PELE)
+    glPushMatrix()
+    glTranslatef(0, 0.75, 0)
+    gluSphere(QUADRIC_GLOBAL, 0.22, 6, 6)
+    glPopMatrix()
+    
+    glPushMatrix(); glTranslatef(-0.30, 0.35, 0); gluSphere(QUADRIC_GLOBAL, 0.07, 4, 4); glPopMatrix()
+    glPushMatrix(); glTranslatef(0.30, 0.35, 0); gluSphere(QUADRIC_GLOBAL, 0.07, 4, 4); glPopMatrix()
+    
+    glEndList()
+
 def inicializar_opengl():
-    global ID_TEXTURA_GRAMA, ID_TEXTURA_MADEIRA, ID_TEXTURA_CHEGADA, ID_TEXTURA_RODA, CORES_TORCIDA, NUVENS
+    global ID_TEXTURA_GRAMA, ID_TEXTURA_MADEIRA, ID_TEXTURA_CHEGADA, ID_TEXTURA_RODA, ID_TEXTURA_MARLBORO, CORES_TORCIDA, NUVENS, QUADRIC_GLOBAL
     
-    glutInit() # Necessário para fontes de texto
+    glutInit() 
     
-    # Gera cores aleatórias para a plateia
+    QUADRIC_GLOBAL = gluNewQuadric()
+
     for _ in range(NUM_SEGMENTOS * 50):
         CORES_TORCIDA.append((random.uniform(0.1, 1.0), random.uniform(0.1, 1.0), random.uniform(0.1, 1.0)))
     
-    # Gera nuvens aleatórias
-    for _ in range(20):
+    for _ in range(15):
         NUVENS.append({
             'x': random.uniform(-150, 150), 
             'y': random.uniform(20, 50), 
@@ -148,7 +195,6 @@ def inicializar_opengl():
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     
-    # Configuração de neblina (Fog)
     glEnable(GL_FOG)
     glFogfv(GL_FOG_COLOR, COR_CEU)
     glFogi(GL_FOG_MODE, GL_EXP2)
@@ -161,6 +207,12 @@ def inicializar_opengl():
     ID_TEXTURA_MADEIRA = criar_textura_madeira()
     ID_TEXTURA_CHEGADA = criar_textura_chegada()
     ID_TEXTURA_RODA = criar_textura_roda()
+    try:
+        ID_TEXTURA_MARLBORO = carregar_textura_de_arquivo("malboro.png")
+    except Exception:
+        ID_TEXTURA_MARLBORO = None
+
+    compilar_display_lists()
 
 def configurar_luz_carro():
     glEnable(GL_LIGHTING)
@@ -176,6 +228,8 @@ def configurar_luz_carro():
 # SISTEMA DE PARTÍCULAS
 
 def gerar_particulas(carro_x, carro_z, intensidade=1):
+    if len(PARTICULAS) > 100: return
+
     offset_rodas = [-0.7, 0.7]
     for wx in offset_rodas:
         for _ in range(intensidade):
@@ -224,65 +278,32 @@ def desenhar_e_atualizar_particulas(dt):
 
 # DESENHO DO MUNDO
 
-def desenhar_boneco_torcida(x, y, z, cor, escala=1.0):
-    quadric = gluNewQuadric()
-    glPushMatrix()
-    glTranslatef(x, y, z)
-    glScalef(escala, escala, escala)
-    
-    # Corpo
-    glColor3f(*cor)
-    glPushMatrix()
-    glRotatef(-90, 1, 0, 0)
-    gluCylinder(quadric, 0.22, 0.18, 0.55, 8, 2)
-    glPopMatrix()
-    
-    # Cabeça
-    glColor3f(*COR_PELE)
-    glPushMatrix()
-    glTranslatef(0, 0.75, 0)
-    gluSphere(quadric, 0.22, 8, 8)
-    glPopMatrix()
-    
-    # Mãos
-    glPushMatrix(); glTranslatef(-0.30, 0.35, 0); gluSphere(quadric, 0.07, 4, 4); glPopMatrix()
-    glPushMatrix(); glTranslatef(0.30, 0.35, 0); gluSphere(quadric, 0.07, 4, 4); glPopMatrix()
-    
-    glPopMatrix()
-    gluDeleteQuadric(quadric)
-
 def desenhar_sol():
-    quadric = gluNewQuadric()
     glPushMatrix()
     glDisable(GL_LIGHTING)
     glColor4f(*COR_SOL)
     glTranslatef(50.0, 80.0, -150.0)
-    gluSphere(quadric, 15.0, 20, 20)
+    gluSphere(QUADRIC_GLOBAL, 15.0, 16, 16)
     glEnable(GL_LIGHTING)
     glPopMatrix()
-    gluDeleteQuadric(quadric)
 
 def desenhar_nuvens(tempo):
-    quadric = gluNewQuadric()
     glColor4f(*COR_NUVEM)
     glDisable(GL_LIGHTING)
     for nuvem in NUVENS:
         glPushMatrix()
         x_atual = nuvem['x'] + (tempo * nuvem['velocidade'] * 0.5) 
-        # Loop da nuvem
         if x_atual > 150: nuvem['x'] = -150; x_atual = -150
         
         glTranslatef(x_atual, nuvem['y'], nuvem['z'])
-        # Cria bolinhas aglomeradas
-        for i in range(3):
-            for j in range(3):
+        for i in range(2):
+            for j in range(2):
                 glPushMatrix()
                 glTranslatef(i * 0.5 - 0.5, j * 0.5 - 0.5, 0)
-                gluSphere(quadric, nuvem['tamanho'] * 0.3, 8, 8)
+                gluSphere(QUADRIC_GLOBAL, nuvem['tamanho'] * 0.3, 6, 6)
                 glPopMatrix()
         glPopMatrix()
     glEnable(GL_LIGHTING)
-    gluDeleteQuadric(quadric)
 
 def desenhar_chao(movimento_z):
     glDisable(GL_LIGHTING)
@@ -292,7 +313,7 @@ def desenhar_chao(movimento_z):
     
     escala_tex = 0.15
     offset_tex = -movimento_z * escala_tex
-    tamanho = 400.0
+    tamanho = 300.0
     
     glBegin(GL_QUADS)
     glTexCoord2f(0.0, 0.0 + offset_tex); glVertex3f(-tamanho, -0.15, -tamanho)
@@ -313,14 +334,12 @@ def desenhar_arquibancada(x_base, z_inicio, z_fim, idx, tempo, lado_direito=Fals
     glBindTexture(GL_TEXTURE_2D, ID_TEXTURA_MADEIRA)
     glColor3f(1.0, 1.0, 1.0)
     
-    # Desenha a estrutura de madeira
     glBegin(GL_QUADS)
     for s in range(degraus):
         if lado_direito: x1, x2 = x_base + (s * profundidade_degrau), x_base + (s * profundidade_degrau) + profundidade_degrau
         else: x1, x2 = x_base - (s * profundidade_degrau), x_base - (s * profundidade_degrau) - profundidade_degrau
         y1, y2 = (s * altura_degrau), (s * altura_degrau) + altura_degrau
         
-        # Mapeamento de textura simples
         glTexCoord2f(0, 0); glVertex3f(x1, y1, z_inicio); glTexCoord2f(0, 1); glVertex3f(x1, y2, z_inicio)
         glTexCoord2f(1, 1); glVertex3f(x1, y2, z_fim); glTexCoord2f(1, 0); glVertex3f(x1, y1, z_fim)
         glTexCoord2f(0, 0); glVertex3f(x1, y2, z_inicio); glTexCoord2f(1, 0); glVertex3f(x2, y2, z_inicio)
@@ -328,7 +347,6 @@ def desenhar_arquibancada(x_base, z_inicio, z_fim, idx, tempo, lado_direito=Fals
     glEnd()
     glDisable(GL_TEXTURE_2D)
     
-    # Desenha a torcida pulando
     densidade = 2
     for s in range(degraus):
         if lado_direito: x1, x2 = x_base + (s * profundidade_degrau), x_base + (s * profundidade_degrau) + profundidade_degrau
@@ -347,10 +365,20 @@ def desenhar_arquibancada(x_base, z_inicio, z_fim, idx, tempo, lado_direito=Fals
             pedaco = (z_fim - z_inicio) / densidade
             pz = z_inicio + (pedaco * k) + (pedaco/2) + rand_z
             
-            # Pulo da torcida
             pulo_y = abs(math.sin((tempo + id_assento * 1.5) * (6.0 + math.sin(id_assento)))) * 0.35
             
-            desenhar_boneco_torcida(px, y_pos + pulo_y, pz, CORES_TORCIDA[int(abs(id_assento)) % len(CORES_TORCIDA)], escala=tamanho)
+            glPushMatrix()
+            glTranslatef(px, y_pos + pulo_y, pz)
+            glScalef(tamanho, tamanho, tamanho)
+            
+            cor = CORES_TORCIDA[int(abs(id_assento)) % len(CORES_TORCIDA)]
+            glColor3f(*cor)
+            
+            if DL_BONECO:
+                glCallList(DL_BONECO)
+            
+            glPopMatrix()
+
     glEnable(GL_LIGHTING)
 
 def desenhar_pista(offset_z, dist_total, tempo, dist_fim_corrida):
@@ -361,7 +389,7 @@ def desenhar_pista(offset_z, dist_total, tempo, dist_fim_corrida):
     glPushMatrix()
     glTranslatef(0, 0, mod_offset)
     
-    for i in range(NUM_SEGMENTOS + 6):
+    for i in range(NUM_SEGMENTOS + 2):
         idx_atual = idx_inicio + i
 
         curva_offset = math.sin((offset_z + i * COMPRIMENTO_SEGMENTO) / 80.0) * 6.0
@@ -370,20 +398,6 @@ def desenhar_pista(offset_z, dist_total, tempo, dist_fim_corrida):
 
         z_inicio = -(i * COMPRIMENTO_SEGMENTO) + COMPRIMENTO_SEGMENTO
         z_fim = z_inicio - COMPRIMENTO_SEGMENTO
-        
-        # eh_linha_chegada = (idx_atual % NUM_SEGMENTOS) == 0
-
-        # if eh_linha_chegada:
-        #     glEnable(GL_TEXTURE_2D)
-        #     glBindTexture(GL_TEXTURE_2D, ID_TEXTURA_CHEGADA)
-        #     glColor3f(1, 1, 1)
-        #     glBegin(GL_QUADS)
-        #     glTexCoord2f(0, 0); glVertex3f(-LARGURA_PISTA/2, 0.02, z_inicio)
-        #     glTexCoord2f(1, 0); glVertex3f(LARGURA_PISTA/2, 0.02, z_inicio)
-        #     glTexCoord2f(1, 1); glVertex3f(LARGURA_PISTA/2, 0.02, z_fim)
-        #     glTexCoord2f(0, 1); glVertex3f(-LARGURA_PISTA/2, 0.02, z_fim)
-        #     glEnd()
-        #     glDisable(GL_TEXTURE_2D)
 
         glColor3f(*COR_ASFALTO)
         glBegin(GL_QUADS)
@@ -412,8 +426,6 @@ def desenhar_pista(offset_z, dist_total, tempo, dist_fim_corrida):
     glEnable(GL_LIGHTING)
 
 
-
-# RENDERIZAÇÃO DE TEXTO (GLUT)
 
 def desenhar_texto(x, y, texto):
     glMatrixMode(GL_PROJECTION)
@@ -444,8 +456,6 @@ def desenhar_texto(x, y, texto):
     glMatrixMode(GL_MODELVIEW)
 
 
-# LOOP PRINCIPAL
-
 def main():
     pygame.init()
     pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA), DOUBLEBUF | OPENGL)
@@ -453,13 +463,12 @@ def main():
     
     inicializar_opengl()
     
-    # Instancia o carro e vincula a textura
     mclaren = McLarenM23()
     mclaren.id_textura_roda = ID_TEXTURA_RODA
+    mclaren.id_textura_marlboro = ID_TEXTURA_MARLBORO
     
     estado_jogo = ESTADO_MENU
     
-    # Variáveis de Controle
     carro_x = 0.0
     carro_z_pos = -6.0
     angulo_roda = 0.0 
@@ -469,13 +478,12 @@ def main():
     pista_z = 0.0
     velocidade = 0.0
     tempo_animacao = 0.0 
-    distancia_total = 0.0   # Distância total percorrida
-    # voltas = 0             # Contador de voltas
-    # distancia_volta = COMPRIMENTO_SEGMENTO * NUM_SEGMENTOS
+    distancia_total = 0.0   
 
     
     ultimo_tempo = time.time()
     rodando = True
+    clock = pygame.time.Clock()
 
     while rodando:
         tempo_atual = time.time()
@@ -504,7 +512,6 @@ def main():
                         carro_x = 0.0
                         pista_z = 0.0
                         velocidade = 0.0
-                        voltas = 0
                         distancia_total = 0.0
                         estado_jogo = ESTADO_MENU
 
@@ -522,7 +529,6 @@ def main():
 
             limite_pista = (LARGURA_PISTA / 2.0)
 
-            pista_z_anterior = pista_z
             pista_z = pista_z + velocidade * dt
             distancia_total += velocidade * dt
 
@@ -552,9 +558,6 @@ def main():
 
             if velocidade > VELOCIDADE_MAX: velocidade = VELOCIDADE_MAX
             if velocidade < 0: velocidade = 0
-
-            # if pista_z < pista_z_anterior:
-            #     voltas += 1
 
             angulo_roda -= velocidade * 15.0 * dt 
         
@@ -600,7 +603,6 @@ def main():
             vel_display = int(velocidade * 3)
             desenhar_texto(20, ALTURA_TELA - 50, f"VELOCIDADE: {vel_display} KM/H")
             desenhar_texto(20, ALTURA_TELA - 90, f"DISTANCIA TOTAL: {int(distancia_total)} m")
-            # desenhar_texto(20, ALTURA_TELA - 130, f"VOLTAS: {voltas}")
             if na_grama and velocidade > 5:
                  desenhar_texto(LARGURA_TELA//2 - 60, ALTURA_TELA - 150, "!!! FORA DA PISTA !!!")
 
@@ -608,9 +610,7 @@ def main():
             desenhar_texto(LARGURA_TELA//2 - 80, ALTURA_TELA//2 + 30, "CARRO DESTRUÍDO")
             desenhar_texto(LARGURA_TELA//2 - 130, ALTURA_TELA//2 - 20, "PRESSIONE ENTER PARA REINICIAR")
 
-
         pygame.display.flip()
-
 
 if __name__ == "__main__":
     main()

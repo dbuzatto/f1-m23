@@ -6,7 +6,6 @@ import math
 
 class McLarenM23:
     def __init__(self):
-        # Definição das cores do carro
         self.COR_VERMELHO = (0.85, 0.0, 0.0)
         self.COR_BRANCO = (1.0, 1.0, 1.0)
         self.COR_PRETO = (0.05, 0.05, 0.05)
@@ -15,12 +14,15 @@ class McLarenM23:
         self.COR_VIDRO = (0.7, 0.85, 0.95)
         self.COR_CAPACETE = (1.0, 0.9, 0.1)
 
-        # Estado do carro
         self.posicao = [0, 0, 0]
         self.rotacao_y = 0
         self.rotacao_roda = 0.0
         self.angulo_direcao = 0.0
         self.id_textura_roda = None
+        self.id_textura_marlboro = None
+        
+        self.quadric = gluNewQuadric()
+        gluQuadricTexture(self.quadric, GL_TRUE)
 
     def desenhar(self):
         glPushMatrix()
@@ -28,6 +30,10 @@ class McLarenM23:
         glRotatef(self.rotacao_y, 0, 1, 0)
 
         self.desenhar_chassi()
+        try:
+            self.desenhar_logo_marlboro_textura()
+        except Exception:
+            pass
         self.desenhar_entrada_ar()
         self.desenhar_asa_dianteira()
         self.desenhar_asa_traseira()
@@ -40,7 +46,6 @@ class McLarenM23:
         glPopMatrix()
 
     def desenhar_chassi(self):
-        # Parte branca inferior
         glColor3f(*self.COR_BRANCO)
         glBegin(GL_QUADS)
         glVertex3f(-0.25, 0.28, 2.2); glVertex3f(0.25, 0.28, 2.2)
@@ -53,24 +58,20 @@ class McLarenM23:
         glVertex3f(0.20, 0.05, 3.2); glVertex3f(-0.20, 0.05, 3.2)
         glEnd()
 
-        # Cockpit vermelho
         glColor3f(*self.COR_VERMELHO)
         glBegin(GL_QUADS)
-        # Topo e laterais
         glVertex3f(-0.45, 0.45, 0.5); glVertex3f(0.45, 0.45, 0.5)
         glVertex3f(0.25, 0.28, 2.2); glVertex3f(-0.25, 0.28, 2.2)
         glVertex3f(-0.45, 0.45, 0.5); glVertex3f(-0.25, 0.28, 2.2)
         glVertex3f(-0.25, 0.05, 2.2); glVertex3f(-0.45, 0.05, 0.5)
         glVertex3f(0.45, 0.45, 0.5); glVertex3f(0.45, 0.05, 0.5)
         glVertex3f(0.25, 0.05, 2.2); glVertex3f(0.25, 0.28, 2.2)
-        # Traseira do cockpit
         glVertex3f(-0.45, 0.45, -0.5); glVertex3f(-0.45, 0.45, 0.5)
         glVertex3f(-0.45, 0.05, 0.5); glVertex3f(-0.45, 0.05, -0.5)
         glVertex3f(0.45, 0.45, 0.5); glVertex3f(0.45, 0.45, -0.5)
         glVertex3f(0.45, 0.05, -0.5); glVertex3f(0.45, 0.05, 0.5)
         glEnd()
 
-        # Interior preto (assento)
         glColor3f(*self.COR_PRETO)
         glBegin(GL_QUADS)
         glVertex3f(-0.35, 0.46, -0.4); glVertex3f(0.35, 0.46, -0.4)
@@ -79,43 +80,36 @@ class McLarenM23:
 
     def desenhar_asa_dianteira(self):
         glColor3f(*self.COR_BRANCO)
-        # Base da asa
         glBegin(GL_QUADS)
         glVertex3f(-1.10, 0.25, 2.4); glVertex3f(-0.20, 0.20, 2.4)
         glVertex3f(-0.20, 0.10, 3.1); glVertex3f(-1.10, 0.15, 3.1)
         glEnd()
-        # Aletas laterais (esquerda)
         glBegin(GL_QUADS)
         glVertex3f(-1.11, 0.30, 2.3); glVertex3f(-1.11, 0.30, 3.2)
         glVertex3f(-1.11, 0.05, 3.2); glVertex3f(-1.11, 0.05, 2.3)
         glEnd()
-        # Base direita
         glBegin(GL_QUADS)
         glVertex3f(0.20, 0.20, 2.4); glVertex3f(1.10, 0.25, 2.4)
         glVertex3f(1.10, 0.15, 3.1); glVertex3f(0.20, 0.10, 3.1)
         glEnd()
-        # Aletas laterais (direita)
         glBegin(GL_QUADS)
         glVertex3f(1.11, 0.30, 3.2); glVertex3f(1.11, 0.30, 2.3)
         glVertex3f(1.11, 0.05, 2.3); glVertex3f(1.11, 0.05, 3.2)
         glEnd()
 
     def desenhar_entrada_ar(self):
-        # Parte vermelha superior
         glColor3f(*self.COR_VERMELHO)
         glBegin(GL_QUADS)
         glVertex3f(-0.25, 0.75, -0.5); glVertex3f(0.25, 0.75, -0.5)
         glVertex3f(0.45, 0.45, -0.5); glVertex3f(-0.45, 0.45, -0.5)
         glEnd()
 
-        # Motor (bloco cinza)
         glColor3f(*self.COR_CINZA)
         glBegin(GL_QUADS)
         glVertex3f(-0.30, 0.40, -0.5); glVertex3f(0.30, 0.40, -0.5)
         glVertex3f(0.30, 0.40, -2.0); glVertex3f(-0.30, 0.40, -2.0)
         glEnd()
 
-        # Detalhe branco lateral
         glColor3f(*self.COR_BRANCO)
         glBegin(GL_QUADS)
         glVertex3f(-0.32, 0.38, -0.5); glVertex3f(-0.32, 0.38, -1.8)
@@ -126,21 +120,18 @@ class McLarenM23:
 
     def desenhar_asa_traseira(self):
         glColor3f(*self.COR_CROMADO)
-        # Suporte
         glBegin(GL_QUADS)
         glVertex3f(-0.05, 0.80, -2.2); glVertex3f(0.05, 0.80, -2.2)
         glVertex3f(0.05, 0.40, -1.8); glVertex3f(-0.05, 0.40, -1.8)
         glEnd()
 
         glColor3f(*self.COR_BRANCO)
-        # Asa principal
         glBegin(GL_QUADS)
         glVertex3f(-1.0, 0.85, -2.0); glVertex3f(1.0, 0.85, -2.0)
         glVertex3f(1.0, 0.90, -2.6); glVertex3f(-1.0, 0.90, -2.6)
         glEnd()
 
         glColor3f(*self.COR_VERMELHO)
-        # Placas laterais da asa
         glBegin(GL_QUADS)
         glVertex3f(-1.01, 0.95, -2.0); glVertex3f(-1.01, 1.00, -2.6)
         glVertex3f(-1.01, 0.60, -2.6); glVertex3f(-1.01, 0.60, -2.0)
@@ -152,7 +143,6 @@ class McLarenM23:
         glEnd()
 
     def desenhar_faixas_laterais(self):
-        # Geometria simples para simular decalques/patrocinadores
         glColor3f(*self.COR_VERMELHO)
         y = 0.22
         glBegin(GL_QUADS)
@@ -174,10 +164,65 @@ class McLarenM23:
         glVertex3f(0.9, 0.16, 2.8); glVertex3f(0.4, 0.14, 2.8)
         glEnd()
 
-    def desenhar_detalhes(self):
-        quadric = gluNewQuadric()
+    def desenhar_logo_marlboro_textura(self):
+        if not getattr(self, 'id_textura_marlboro', None):
+            return
 
-        # Santo Antônio (barra de proteção)
+        glPushMatrix()
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.id_textura_marlboro)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glColor3f(1.0, 1.0, 1.0)
+
+        glPushMatrix()
+        glTranslatef(0.0, 0.25, 2.45) 
+        glRotatef(97.5, 1, 0, 0) 
+        
+        largura_top = 0.50
+        altura_top = 0.25
+        
+        glBegin(GL_QUADS)
+        glTexCoord2f(0.0, 0.0); glVertex3f(-largura_top/2, altura_top/2, 0) 
+        glTexCoord2f(1.0, 0.0); glVertex3f(largura_top/2, altura_top/2, 0)  
+        glTexCoord2f(1.0, 1.0); glVertex3f(largura_top/2, -altura_top/2, 0) 
+        glTexCoord2f(0.0, 1.0); glVertex3f(-largura_top/2, -altura_top/2, 0)
+        glEnd()
+        glPopMatrix()
+
+        pos_z_lateral = 1.10 
+        alt_lateral = 0.28
+        largura_lat = 0.45
+        altura_lat = 0.16
+        largura_chassi_nesse_ponto = 0.36 
+
+        glPushMatrix()
+        glTranslatef(-largura_chassi_nesse_ponto, alt_lateral, pos_z_lateral)
+        glRotatef(95, 0, 1, 0) 
+        glBegin(GL_QUADS)
+        glTexCoord2f(0.0, 0.0); glVertex3f(-largura_lat/2, -altura_lat/2, 0)
+        glTexCoord2f(1.0, 0.0); glVertex3f(largura_lat/2, -altura_lat/2, 0)
+        glTexCoord2f(1.0, 1.0); glVertex3f(largura_lat/2, altura_lat/2, 0)
+        glTexCoord2f(0.0, 1.0); glVertex3f(-largura_lat/2, altura_lat/2, 0)
+        glEnd()
+        glPopMatrix()
+
+        glPushMatrix()
+        glTranslatef(largura_chassi_nesse_ponto, alt_lateral, pos_z_lateral)
+        glRotatef(-95, 0, 1, 0)
+        glBegin(GL_QUADS)
+        glTexCoord2f(1.0, 0.0); glVertex3f(-largura_lat/2, -altura_lat/2, 0)
+        glTexCoord2f(0.0, 0.0); glVertex3f(largura_lat/2, -altura_lat/2, 0)
+        glTexCoord2f(0.0, 1.0); glVertex3f(largura_lat/2, altura_lat/2, 0)
+        glTexCoord2f(1.0, 1.0); glVertex3f(-largura_lat/2, altura_lat/2, 0)
+        glEnd()
+        glPopMatrix()
+
+        glDisable(GL_BLEND)
+        glDisable(GL_TEXTURE_2D)
+        glPopMatrix()
+
+    def desenhar_detalhes(self):
         glColor3f(*self.COR_CROMADO)
         glPushMatrix()
         glTranslatef(0, 0.75, -0.5)
@@ -188,26 +233,22 @@ class McLarenM23:
         glEnd()
         glPopMatrix()
 
-        # Retrovisores
-        self._desenhar_retrovisor(-0.35, 0.50, 1.2) # Esquerdo
-        self._desenhar_retrovisor(0.35, 0.50, 1.2)  # Direito
+        self._desenhar_retrovisor(-0.35, 0.50, 1.2)
+        self._desenhar_retrovisor(0.35, 0.50, 1.2)
 
-        # Escapamentos
         glColor3f(0.3, 0.3, 0.3)
-        # Esq
         glPushMatrix()
         glTranslatef(-0.2, 0.2, -2.0)
         glRotatef(180, 0, 1, 0)
-        gluCylinder(quadric, 0.05, 0.05, 0.5, 10, 1)
+        gluCylinder(self.quadric, 0.05, 0.05, 0.5, 10, 1)
         glPopMatrix()
-        # Dir
+
         glPushMatrix()
         glTranslatef(0.2, 0.2, -2.0)
         glRotatef(180, 0, 1, 0)
-        gluCylinder(quadric, 0.05, 0.05, 0.5, 10, 1)
+        gluCylinder(self.quadric, 0.05, 0.05, 0.5, 10, 1)
         glPopMatrix()
 
-        # Para-brisa (transparente)
         glColor3f(*self.COR_VIDRO)
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -225,14 +266,12 @@ class McLarenM23:
         glDisable(GL_LIGHTING)
         glColor3f(*self.COR_BRANCO)
         
-        # Haste
         glBegin(GL_LINES)
         glVertex3f(0, 0, 0)
         if x < 0: glVertex3f(-0.12, 0.12, -0.1)
         else: glVertex3f(0.12, 0.12, -0.1)
         glEnd()
         
-        # Espelho
         if x < 0: glTranslatef(-0.12, 0.12, -0.1)
         else: glTranslatef(0.12, 0.12, -0.1)
         
@@ -242,30 +281,24 @@ class McLarenM23:
         glPopMatrix()
 
     def desenhar_piloto(self):
-        quadric = gluNewQuadric()
         glPushMatrix()
         glTranslatef(0, 0.55, 0)
         
-        # Vira a cabeça conforme o volante
         glRotatef(self.angulo_direcao * 1.5, 0, 1, 0)
 
-        # Capacete
         glColor3f(*self.COR_CAPACETE)
-        gluSphere(quadric, 0.16, 16, 16)
+        gluSphere(self.quadric, 0.16, 16, 16)
 
-        # Viseira
         glColor3f(0.1, 0.1, 0.2)
         glPushMatrix()
         glTranslatef(0, 0.02, 0.12)
         glScalef(1, 0.6, 1)
-        gluSphere(quadric, 0.08, 16, 16)
+        gluSphere(self.quadric, 0.08, 16, 16)
         glPopMatrix()
 
         glPopMatrix()
-        gluDeleteQuadric(quadric)
 
     def desenhar_cubo(self):
-        # Primitiva auxiliar
         glBegin(GL_QUADS)
         for x in [-1, 1]:
             glVertex3f(x, -1, -1); glVertex3f(x, 1, -1)
@@ -282,13 +315,11 @@ class McLarenM23:
         glColor3f(*self.COR_CROMADO)
         glLineWidth(4)
         glBegin(GL_LINES)
-        # Dianteira
         glVertex3f(-0.65, 0.25, 1.6); glVertex3f(-0.25, 0.35, 1.6)
         glVertex3f(-0.65, 0.25, 1.6); glVertex3f(-0.25, 0.15, 1.6)
         glVertex3f(0.65, 0.25, 1.6); glVertex3f(0.25, 0.35, 1.6)
         glVertex3f(0.65, 0.25, 1.6); glVertex3f(0.25, 0.15, 1.6)
 
-        # Traseira
         glVertex3f(-0.70, 0.25, -1.5); glVertex3f(-0.30, 0.35, -1.0)
         glVertex3f(-0.70, 0.25, -1.5); glVertex3f(-0.30, 0.15, -1.0)
         glVertex3f(0.70, 0.25, -1.5); glVertex3f(0.30, 0.35, -1.0)
@@ -299,7 +330,6 @@ class McLarenM23:
     def desenhar_rodas(self):
         glPushMatrix()
 
-        # Roda Esq Dianteira
         glPushMatrix()
         glTranslatef(-0.65, 0.25, 1.6)
         glRotatef(self.angulo_direcao, 0, 1, 0)
@@ -307,14 +337,12 @@ class McLarenM23:
         self.desenhar_unica_roda(0.32, 0.35, espelhado=True)
         glPopMatrix()
 
-        # Roda Esq Traseira
         glPushMatrix()
         glTranslatef(-0.70, 0.25, -1.5)
         glRotatef(self.rotacao_roda, 1, 0, 0)
         self.desenhar_unica_roda(0.40, 0.60, espelhado=True)
         glPopMatrix()
 
-        # Roda Dir Dianteira
         glPushMatrix()
         glTranslatef(0.65, 0.25, 1.6)
         glRotatef(self.angulo_direcao, 0, 1, 0)
@@ -322,7 +350,6 @@ class McLarenM23:
         self.desenhar_unica_roda(0.32, 0.35, espelhado=False)
         glPopMatrix()
 
-        # Roda Dir Traseira
         glPushMatrix()
         glTranslatef(0.70, 0.25, -1.5)
         glRotatef(self.rotacao_roda, 1, 0, 0)
@@ -332,23 +359,20 @@ class McLarenM23:
         glPopMatrix()
 
     def desenhar_unica_roda(self, raio, largura, espelhado=False):
-        quadric = gluNewQuadric()
         glPushMatrix()
         if espelhado:
             glRotatef(180, 0, 1, 0)
 
-        gluQuadricTexture(quadric, GL_FALSE)
+        gluQuadricTexture(self.quadric, GL_FALSE)
         glColor3f(*self.COR_PRETO)
         
-        # Pneu (Cilindro)
         glPushMatrix()
         glRotatef(90, 0, 1, 0)
         glTranslatef(0, 0, -largura / 2)
-        gluCylinder(quadric, raio, raio, largura, 24, 1)
+        gluCylinder(self.quadric, raio, raio, largura, 24, 1)
         glPopMatrix()
 
-        # Calota (com textura se disponível)
-        gluQuadricTexture(quadric, GL_TRUE)
+        gluQuadricTexture(self.quadric, GL_TRUE)
         glPushMatrix()
         glRotatef(90, 0, 1, 0)
         glTranslatef(0, 0, largura / 2)
@@ -357,21 +381,19 @@ class McLarenM23:
             glColor3f(1, 1, 1)
         else:
             glColor3f(*self.COR_PRETO)
-        gluDisk(quadric, 0, raio, 24, 1)
+        gluDisk(self.quadric, 0, raio, 24, 1)
         glDisable(GL_TEXTURE_2D)
         glPopMatrix()
 
-        # Parte interna da roda
         glPushMatrix()
         glRotatef(90, 0, 1, 0)
         glTranslatef(0, 0, -largura / 2)
         glRotatef(180, 0, 1, 0)
         glColor3f(*self.COR_PRETO)
-        gluDisk(quadric, 0, raio, 24, 1)
+        gluDisk(self.quadric, 0, raio, 24, 1)
         glPopMatrix()
 
         glPopMatrix()
-        gluDeleteQuadric(quadric)
 
 if __name__ == "__main__":
     print("Execute o arquivo scene.py para iniciar o simulador.")
